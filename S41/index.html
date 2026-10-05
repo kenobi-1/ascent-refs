@@ -19,9 +19,9 @@ video{width:100%;aspect-ratio:9/16;background:#000;display:block;object-fit:cont
 .a{color:var(--acc);font-size:12px;margin-top:3px}.f{color:var(--mut);font-size:12px;margin-top:4px}.h{font-size:12px;margin-top:6px;font-style:italic}
 .hidden{display:none}
 </style></head><body>
-<header><h1>Referencias Ascent · S41 <small>05/10 al 10/10 · 96 videos</small></h1>
+<header><h1>Referencias Ascent · S41 <small>Play: arrancan todas las que tenés en pantalla y se prenden solas al bajar · 05/10 al 10/10 · 96 videos</small></h1>
 <div class="bar">
-<button class="big" id="playAll">▶ Play a todas las visibles</button><button id="pauseAll">⏸ Pausar todas</button>
+<button class="big" id="playAll">▶ Play a todas (las que ves)</button><button id="pauseAll">⏹ Parar todo</button>
 <button id="mute" class="on">🔇 Mudas</button><button id="seq">⏭ Una tras otra</button>
 <span class="sep"></span><span id="filters"></span></div></header>
 <main id="m"></main>
@@ -33,17 +33,20 @@ days.forEach(d=>{const s=document.createElement('section');s.dataset.day=d;const
 s.innerHTML=`<h2>${d} · ${M[rs[0].brand]} (${rs.length})</h2><div class="grid"></div>`;
 const g=s.querySelector('.grid');rs.forEach(r=>{const c=document.createElement('div');c.className='c';c.dataset.brand=r.brand;
 c.innerHTML=`<video controls playsinline muted preload="none" data-src="${r.file}#t=0.5"></video><div class="i"><div class="t">${r.g} <span>${r.brand} · ${r.dur}s</span></div><div class="a">${r.ang}</div><div class="f">${r.fmt}</div><div class="h">${r.hook}</div><div class="f">${r.file}</div></div>`;g.appendChild(c)});m.appendChild(s)});
-const vids=[...document.querySelectorAll('video')];
-const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const v=e.target;if(!v.src){v.src=v.dataset.src;v.preload='metadata'}io.unobserve(v)}}),{rootMargin:'600px'});
+const vids=[...document.querySelectorAll('video')];let auto=false;const onScreen=new Set();
+const load=v=>{if(!v.getAttribute('src')){v.src=v.dataset.src;v.preload='metadata'}};
+const unload=v=>{if(v.getAttribute('src')&&v.paused){v.removeAttribute('src');v.load()}};
+const visible=()=>vids.filter(v=>!v.closest('.hidden'));
+const io=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target;if(e.isIntersecting){onScreen.add(v);load(v);if(auto){v.muted=muted;v.play().catch(()=>{})}}else{onScreen.delete(v);if(auto)v.pause()}}),{threshold:0.35});
 vids.forEach(v=>{io.observe(v);v.addEventListener('play',()=>v.closest('.c').classList.add('playing'));
 v.addEventListener('pause',()=>v.closest('.c').classList.remove('playing'));
-v.addEventListener('ended',()=>{v.closest('.c').classList.remove('playing');if(seqOn){const vis=visible();const n=vis[vis.indexOf(v)+1];if(n){load(n);n.muted=muted;n.scrollIntoView({behavior:'smooth',block:'center'});n.play()}}})});
-const load=v=>{if(!v.src){v.src=v.dataset.src}};
-const visible=()=>vids.filter(v=>!v.closest('.hidden'));
-playAll.onclick=()=>{seqOn=false;seq.classList.remove('on');visible().forEach(v=>{load(v);v.muted=muted;v.play().catch(()=>{})})};
-pauseAll.onclick=()=>vids.forEach(v=>v.pause());
+v.addEventListener('ended',()=>{v.closest('.c').classList.remove('playing');if(auto&&!seqOn){v.currentTime=0;v.play().catch(()=>{})}
+ if(seqOn){const vis=visible();const n=vis[vis.indexOf(v)+1];if(n){load(n);n.muted=muted;n.scrollIntoView({behavior:'smooth',block:'center'});n.play().catch(()=>{})}}})});
+playAll.onclick=()=>{seqOn=false;seq.classList.remove('on');auto=!auto;playAll.classList.toggle('on',auto);playAll.textContent=auto?'⏸ Frenar el play':'▶ Play a todas (las que ves)';
+ if(auto)[...onScreen].filter(v=>!v.closest('.hidden')).forEach(v=>{load(v);v.muted=muted;v.play().catch(()=>{})});else vids.forEach(v=>v.pause())};
+pauseAll.onclick=()=>{auto=false;seqOn=false;playAll.classList.remove('on');seq.classList.remove('on');playAll.textContent='▶ Play a todas (las que ves)';vids.forEach(v=>v.pause())};
 mute.onclick=()=>{muted=!muted;mute.classList.toggle('on',muted);mute.textContent=muted?'🔇 Mudas':'🔊 Con sonido';vids.forEach(v=>v.muted=muted)};
-seq.onclick=()=>{seqOn=!seqOn;seq.classList.toggle('on',seqOn);if(seqOn){vids.forEach(v=>v.pause());const v=visible()[0];load(v);v.muted=muted;v.scrollIntoView({behavior:'smooth',block:'center'});v.play()}};
+seq.onclick=()=>{auto=false;playAll.classList.remove('on');seqOn=!seqOn;seq.classList.toggle('on',seqOn);vids.forEach(v=>v.pause());if(seqOn){const v=visible()[0];load(v);v.muted=muted;v.scrollIntoView({behavior:'smooth',block:'center'});v.play().catch(()=>{})}};
 const F=document.getElementById('filters');['TODO','DR','LL','RR',...days].forEach(k=>{const b=document.createElement('button');b.textContent=M[k]||(k=='TODO'?'Todo':k[0]+k.slice(1).toLowerCase());if(k==filt)b.classList.add('on');
 b.onclick=()=>{filt=k;F.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x==b));vids.forEach(v=>v.pause());
 document.querySelectorAll('section').forEach(s=>{const rs=s.querySelector('.c').dataset.brand;s.classList.toggle('hidden',!(k=='TODO'||k==rs||k==s.dataset.day))})};F.appendChild(b)});
