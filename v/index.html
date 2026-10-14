@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Referencia · Ascent</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #111; color: #eee; font: 15px/1.4 -apple-system, system-ui, sans-serif;
+         display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+  h1 { font-size: 15px; font-weight: 600; margin: 14px 16px 10px; }
+  video { width: 100%; max-width: 520px; max-height: 80vh; background: #000; }
+  p { margin: 10px 16px; color: #aaa; text-align: center; }
+  a { color: #6ab0ff; }
+</style>
+</head>
+<body>
+<h1 id="t">Referencia</h1>
+<video id="v" controls playsinline preload="metadata"></video>
+<p id="m">Cargando…</p>
+<p><a id="d" href="#">Descargar el video</a></p>
+<script>
+// Reproductor de referencias de Ascent (14/10/2026). Link: kenobi-1.github.io/ascent-refs/v/?S41_RR_C11
+// El video sale de la rama `cdn` de este repo por raw.githubusercontent.com (GitHub, no jsDelivr, que va y viene).
+// raw lo manda como octet-stream: si el navegador no lo reproduce directo, se baja entero y se reproduce como video/mp4.
+(function () {
+  var id = decodeURIComponent(location.search.slice(1)).replace(/[^A-Za-z0-9_-]/g, "");
+  var v = document.getElementById("v"), m = document.getElementById("m"), d = document.getElementById("d");
+  if (!id) { m.textContent = "Falta el nombre del video en el link."; return; }
+  var url = "https://raw.githubusercontent.com/kenobi-1/ascent-refs/cdn/" + id.split("_")[0] + "/" + id + ".mp4";
+  document.getElementById("t").textContent = id;
+  document.title = id + " · Ascent";
+  d.href = url;
+  var entero = false;
+  function bajarEntero() {
+    if (entero) return;
+    entero = true;
+    m.textContent = "Cargando el video…";
+    fetch(url)
+      .then(function (r) { if (!r.ok) throw new Error("error " + r.status); return r.blob(); })
+      .then(function (b) { v.src = URL.createObjectURL(new Blob([b], { type: "video/mp4" })); m.textContent = ""; })
+      .catch(function (e) { m.textContent = "No se pudo cargar (" + e.message + "). Probá con «Descargar el video»."; });
+  }
+  v.addEventListener("error", bajarEntero);
+  v.addEventListener("loadedmetadata", function () { if (!entero) m.textContent = ""; });
+  v.src = url;
+  setTimeout(function () { if (v.readyState < 1) bajarEntero(); }, 8000);
+})();
+</script>
+</body>
+</html>
